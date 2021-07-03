@@ -24,8 +24,6 @@ info: |
 # Vue 3 新特性回顾
 
 - Composition API
-  - 单一组件层面的应用
-  - 跨多组件层面的应用
 - Fragment
 - Teleport
 - Emits Component Option
@@ -37,6 +35,8 @@ info: |
 # 目录
 
 - **Composition API**
+  - 单一组件层面的应用
+  - 跨多组件层面的应用
 
 <div class="opacity-40">
 
