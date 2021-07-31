@@ -64,7 +64,7 @@ info: |
 - TypeScript
 - `inheritAttrs`
 - 渲染函数 `h`
-- 不足之处
+- 尚未解决的痛点
 
 </div>
 
@@ -95,7 +95,9 @@ info: |
 
 ---
 
-# Composition API · 逻辑复用
+# Composition API · 逻辑复用 1
+
+Table，逻辑的拆分聚合
 
 <div class="grid grid-cols-2 gap-x-4 mb-4">
 
@@ -155,6 +157,640 @@ export default defineComponent({
 </div>
 
 </div>
+
+---
+
+# Composition API · 逻辑复用 2
+
+Form Item，代替 Mixin
+
+<div class="grid grid-cols-2 gap-x-4 mb-4">
+
+<div>
+
+```html
+<script>
+  const formItemMixin = {
+    methods: {
+      triggerFormItemUpdate () {
+        ...
+      }
+    }
+  }
+
+  export default {
+    mixins: [
+      formItemMixin
+    ],
+    methods: {
+      doUpdateValue () {
+        this.triggerFormItemUpdate()
+      }
+    }
+  }
+</script>
+```
+
+</div>
+
+<div>
+
+Vue 2 跨组件逻辑复用的方式 `mixin`
+
+- 动态合并
+  - 类型不友好
+  - 合并策略 implicit
+  - Debug 困难
+  - 间接暴露接口，无法直接了解做了什么
+
+</div>
+
+</div>
+
+---
+
+# Composition API · 逻辑复用 2
+
+Form Item，代替 Mixin
+
+<div class="grid grid-cols-2 gap-x-4 mb-4">
+
+<div>
+
+```html
+<script>
+  function useFormItem () {
+    return {
+      triggerFormItemUpdate () {
+        ...
+      }
+    }
+  }
+
+  export default defineComponent({
+    setup () {
+      const { triggerFormItemUpdate } = useFormItem()
+      return {
+        doUpdateValue () {
+          triggerFormItemUpdate()
+        }
+      }
+    }
+  })
+</script>
+```
+
+</div>
+
+<div>
+
+Composition API
+
+- 直接使用
+  - 类型友好
+  - Explicit 使用
+  - Debug 困难
+
+</div>
+
+</div>
+
+---
+
+# Composition API · 性能优化
+
+&nbsp;
+
+先讲一下性能优化的两个思路：
+
+- 减少 DOM 操作
+  - 最需要注意的是 Reflow
+  - 不过这个和 Composition API 并没什么直接关联
+- 减少渲染
+  - 渲染不一定会导致 DOM 操作
+  - 这个是重点
+
+---
+
+# Composition API · 性能优化 1
+
+使用 `watchEffect` 减少渲染次数
+
+假设我们有一个 500 行的 Table。
+
+在滚动开始的时候会向 Table 应用一个类。
+
+```js
+export default defineComponent({
+  setup() {
+    const scrolledRef = ref(false)
+    return {
+      scrolled: scrolledRef,
+      onScroll(e) {
+        if (e.target.scrollTop === 0) scrolledRef.value = false
+        else scrolledRef.value = true
+      }
+    }
+  },
+  render() {
+    return (
+      <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
+    )
+  }
+})
+```
+
+---
+
+# Composition API · 性能优化 1
+
+使用 `watchEffect` 减少渲染次数
+
+每次开始滚动时都要渲染一次（调用一次 render 函数）。
+
+那么怎么避免这次渲染呢？
+
+<v-click>
+
+当然是直接操作 DOM 了 😅
+
+</v-click>
+
+<v-click>
+
+**这不是常规性能优化，请在你确定瓶颈后进行专门的优化。**
+
+具体的场景是某些小的改动会触发一个耗时的 render。
+
+例如只改动一个小的类名要重新创造 500 个 VNode。
+
+</v-click>
+
+---
+
+# Composition API · 性能优化 1
+
+使用 `watchEffect` 减少渲染次数
+
+```js
+export default defineComponent({
+  setup() {
+    const selfElRef = ref(null)
+    const scrolledRef = ref(false)
+    watchEffect(() => {
+      // 在这里修改 DOM
+      selfElRef.value.className = scrolledRef.value ? 'scrolled' : ''
+    })
+    return {
+      selfElRef,
+      onScroll(e) {
+        if (e.target.scrollTop === 0) scrolledRef.value = false
+        else scrolledRef.value = true
+      }
+    }
+  },
+  render() {
+    return <div ref="selfElRef" onScroll={this.onScroll} />
+  }
+})
+```
+
+---
+
+# Composition API · 性能优化 1
+
+使用 `watchEffect` 减少渲染次数
+
+这究竟是个什么思路呢？
+
+- 本质上是你代替 Vue 控制视图
+  - 局部 Svelte 化
+- 为什么要这么做
+  - 某些改动不值得完整的渲染
+
+<v-click>
+
+为什么使用 `watchEffect`？
+
+- `watch` 不行吗？
+  - 可以，但是很难处理更复杂的场景
+- `watchEffect` 自动收集依赖
+  - `watch` 需要手动指明依赖
+- 我们看一个真实 Case
+
+</v-click>
+
+---
+
+# Composition API · 性能优化 1
+
+使用 `watchEffect` 减少渲染次数
+
+```js
+watchEffect(() => {
+  const { value: leftActiveFixedColKey } = leftActiveFixedColKeyRef
+  const { value: rightActiveFixedColKey } = rightActiveFixedColKeyRef
+  if (
+    !fixedStyleMounted &&
+    leftActiveFixedColKey === null &&
+    rightActiveFixedColKey === null
+  ) {
+    return
+  }
+  // 挂载相关样式
+  fixedStyleMounted = true
+})
+```
+
+涉及多个依赖使用 `watchEffect` 效果好于 `watch`。
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+### CheckboxGroup API
+
+```html
+<template>
+  <CheckboxGroup :value="['a', 'b']">
+    <Checkbox value="a" />
+    <Checkbox value="b" />
+    <Checkbox value="c" />
+  </CheckboxGroup>
+</template>
+```
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+### CheckboxGroup 实现
+
+<div class="grid grid-cols-2 gap-x-4">
+
+<div>
+
+```ts
+defineComponent({
+  name: 'CheckboxGroup',
+  props: ['value'],
+  setup(props) {
+    provide('checkbox-group', {
+      valueRef: toRef(props, 'value')
+    })
+  }
+})
+```
+
+</div>
+
+<div>
+
+```ts
+defineComponent({
+  name: 'Checkbox',
+  props: ['value'],
+  setup(props) {
+    const { valueRef } = inject('checkbox-group')
+    return {
+      checked: computed(() => {
+        return valueRef.value.includes(props.value)
+      })
+    }
+  }
+})
+```
+
+</div>
+
+</div>
+
+<div v-click class="mt-4">
+
+`computed` 有一个特点，只要其依赖的值更改，即使计算结果不更改，也会触发重新渲染
+
+</div>
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+### `computed` 导致多余渲染
+
+<div class="grid grid-cols-2 gap-x-4 mb-4">
+
+<div>
+
+`value="['a', 'b']"`
+
+```html
+<template>
+  <CheckboxGroup :value="['a', 'b']">
+    <Checkbox value="a" />
+    <Checkbox value="b" />
+    <Checkbox value="c" />
+  </CheckboxGroup>
+</template>
+```
+
+</div>
+
+<div>
+
+`value="['a']"`
+
+```html
+<template>
+  <CheckboxGroup :value="['a']">
+    <Checkbox value="a" />
+    <!--  RERENDER   -->
+    <Checkbox value="b" />
+    <!-- DOM CHANGED -->
+    <Checkbox value="c" />
+    <!--  RERENDER   -->
+  </CheckboxGroup>
+</template>
+```
+
+然而 `'a'`、`'c'` 本可以不 rerender 的
+
+</div>
+
+</div>
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+解决方案
+
+结合 `ref`、`computed`、`watchEffect`
+
+### ref 不会导致重新渲染
+
+```ts
+const valueRef = ref(0)
+valueRef.value = 1
+valueRef.value = 1 // 不会导致重新渲染
+valueRef.value = 1 // 不会导致重新渲染
+```
+
+### useMemo
+
+```ts
+function useMemo(getter) {
+  const computedValueRef = computed(getter)
+  const valueRef = ref()
+  watchEffect(() => {
+    valueRef.value = computedValueRef.value
+  })
+  return valueRef
+}
+```
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+### 使用 UseMemo 实现 Checkbox
+
+<div class="grid grid-cols-2 gap-x-4">
+
+<div>
+
+```ts{7-9}
+defineComponent({
+  name: 'Checkbox',
+  props: ['value'],
+  setup (props) {
+    const { valueRef } = inject('checkbox-group')
+    return {
+      checked: computed(() => {
+        return valueRef.value.includes(props.value)
+      })
+    }
+  }
+})
+```
+
+</div>
+
+<div>
+
+```ts{7-9}
+defineComponent({
+  name: 'Checkbox',
+  props: ['value'],
+  setup (props) {
+    const { valueRef } = inject('checkbox-group')
+    return {
+      checked: useMemo(() => {
+        return valueRef.value.includes(props.value)
+      })
+    }
+  }
+})
+```
+
+</div>
+
+</div>
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+<img src="/assets/memo-checkbox.png" style="margin: auto; height: 60%;" />
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+### 1000 Checkbox
+
+为了放大性能差异，每个 `render` 中都带一个 `console.log`
+
+<div class="grid grid-cols-2 gap-x-4 mb-4">
+
+<div>
+
+### Computed
+
+<img src="/assets/computed-perf.png" />
+
+</div>
+
+<div>
+
+### useMemo
+
+<img src="/assets/memo-perf.png" />
+
+</div>
+
+</div>
+
+[https://codesandbox.io/s/memo-large-data-98jni](https://codesandbox.io/s/memo-large-data-98jni)
+
+---
+
+# Composition API · 性能优化 2
+
+优化 Checkbox Group 性能
+
+使用 mixin？🤮
+
+```js
+function createMemoMixin(fieldName, getter) {
+  return {
+    computed: {
+      [`computed-${fieldName}`]: getter
+    },
+    watch: {
+      [`computed-${fieldName}`]: function (value) {
+        this[fieldName] = value
+      }
+    },
+    created() {
+      this[fieldName] = this[`computed-${fieldName}`]
+    },
+    data() {
+      return { fieldName: null } // ?
+    }
+  }
+}
+```
+
+---
+
+# Composition API · 性能优化 3
+
+再提 `useMemo`
+
+我们回到第一个例子，我当时特地挑了一个性能好的写法。
+
+```js
+export default defineComponent({
+  setup() {
+    const scrolledRef = ref(false)
+    return {
+      scrolled: scrolledRef,
+      onScroll(e) {
+        if (e.target.scrollTop === 0) scrolledRef.value = false
+        else scrolledRef.value = true
+      }
+    }
+  },
+  render() {
+    return (
+      <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
+    )
+  }
+})
+```
+
+---
+
+# Composition API · 性能优化 3
+
+再提 `useMemo`
+
+让我们换一个性能差的。
+
+```js
+export default defineComponent({
+  setup() {
+    const scrolledTopRef = ref(0)
+    return {
+      scrollTop: scrolledTopRef,
+      onScroll(e) {
+        scrolledTopRef.value = e.target.scrollTop
+      }
+    }
+  },
+  render() {
+    // 每一次滚动都要重新渲染
+    return (
+      <div
+        class={this.scrollTop !== 0 ? 'scrolled' : ''}
+        onScroll={this.onScroll}
+      />
+    )
+  }
+})
+```
+
+---
+
+# Composition API · 性能优化 3
+
+再提 `useMemo`
+
+换成 `computed`，一样差。
+
+```js
+export default defineComponent({
+  setup() {
+    const scrolledTopRef = ref(0)
+    return {
+      scrolled: computed(() => scrollTopRef.value !== 0),
+      onScroll(e) {
+        scrolledTopRef.value = e.target.scrollTop
+      }
+    }
+  },
+  render() {
+    return (
+      // 每一次滚动都要重新渲染
+      <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
+    )
+  }
+})
+```
+
+---
+
+# Composition API · 性能优化 3
+
+再提 `useMemo`
+
+换成 `useMemo`，只在 `scrolled` 改变时渲染。
+
+https://github.com/07akioni/vooks/blob/master/src/use-memo.ts
+
+```js
+export default defineComponent({
+  setup() {
+    const scrolledTopRef = ref(0)
+    return {
+      scrolled: useMemo(() => scrollTopRef.value !== 0),
+      onScroll(e) {
+        scrolledTopRef.value = e.target.scrollTop
+      }
+    }
+  },
+  render() {
+    return (
+      // 每一次滚动都要重新渲染
+      <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
+    )
+  }
+})
+```
 
 ---
 
@@ -223,371 +859,33 @@ defineComponent({
 
 ---
 
-# Composition API · 跨组件逻辑复用 1
+# Composition API · 更好的类型支持
 
-复用 Form Item 逻辑
+Component 暴露的 Ref 类型
 
-<div class="grid grid-cols-2 gap-x-4 mb-4">
+你会发现之前的方式（在 Runtime 层面）有两点不足：
 
-<div>
+1. 暴露了不该暴露的属性
+2. 在 setup 返回函数时没用
 
-```html
-<script>
-  const formItemMixin = {
-    methods: {
-      triggerFormItemUpdate () {
-        ...
-      }
-    }
-  }
+不过我们有了新的 RFC，已经通过
 
-  export default {
-    mixins: [
-      formItemMixin
-    ],
-    methods: {
-      doUpdateValue () {
-        this.triggerFormItemUpdate()
-      }
-    }
-  }
-</script>
-```
-
-</div>
-
-<div>
-
-Vue 2 跨组件逻辑复用的方式 `mixin`
-
-- 动态合并
-  - 类型不友好
-  - 合并策略 implicit
-  - Debug 困难
-  - 间接暴露接口，无法直接了解做了什么
-
-</div>
-
-</div>
-
----
-
-# Composition API · 跨组件逻辑复用 1
-
-复用 Form Item 逻辑
-
-<div class="grid grid-cols-2 gap-x-4 mb-4">
-
-<div>
-
-```html
-<script>
-  function useFormItem () {
-    return {
-      triggerFormItemUpdate () {
-        ...
-      }
-    }
-  }
-
-  export default defineComponent({
-    setup () {
-      const { triggerFormItemUpdate } = useFormItem()
-      return {
-        doUpdateValue () {
-          triggerFormItemUpdate()
-        }
-      }
-    }
-  })
-</script>
-```
-
-</div>
-
-<div>
-
-Composition API
-
-- 直接使用
-  - 类型友好
-  - Explicit 使用
-  - Debug 困难
-
-</div>
-
-</div>
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-### CheckboxGroup API
-
-```html
-<template>
-  <CheckboxGroup :value="['a', 'b']">
-    <Checkbox value="a" />
-    <Checkbox value="b" />
-    <Checkbox value="c" />
-  </CheckboxGroup>
-</template>
-```
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-### CheckboxGroup 实现
-
-<div class="grid grid-cols-2 gap-x-4">
-
-<div>
-
-```ts
-defineComponent({
-  name: 'CheckboxGroup',
-  props: ['value'],
-  setup(props) {
-    provide('checkbox-group', {
-      valueRef: toRef(props, 'value')
-    })
-  }
-})
-```
-
-</div>
-
-<div>
-
-```ts
-defineComponent({
-  name: 'Checkbox',
-  props: ['value'],
-  setup(props) {
-    const { valueRef } = inject('checkbox-group')
-    return {
-      checked: computed(() => {
-        return valueRef.value.includes(props.value)
-      })
-    }
-  }
-})
-```
-
-</div>
-
-</div>
-
-<div v-click class="mt-4">
-
-`computed` 有一个特点，只要其依赖的值更改，即使计算结果不更改，也会触发重新渲染
-
-</div>
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-### `computed` 导致多余渲染
-
-<div class="grid grid-cols-2 gap-x-4 mb-4">
-
-<div>
-
-`value="['a', 'b']"`
-
-```html
-<template>
-  <CheckboxGroup :value="['a', 'b']">
-    <Checkbox value="a" />
-    <Checkbox value="b" />
-    <Checkbox value="c" />
-  </CheckboxGroup>
-</template>
-```
-
-</div>
-
-<div>
-
-`value="['a']"`
-
-```html
-<template>
-  <CheckboxGroup :value="['a']">
-    <Checkbox value="a" />
-    <!--  RERENDER   -->
-    <Checkbox value="b" />
-    <!-- DOM CHANGED -->
-    <Checkbox value="c" />
-    <!--  RERENDER   -->
-  </CheckboxGroup>
-</template>
-```
-
-然而 `'a'`、`'c'` 本可以不 rerender 的
-
-</div>
-
-</div>
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-解决方案
-
-结合 `ref`、`computed`、`watchEffect`
-
-### ref 不会导致重新渲染
-
-```ts
-const valueRef = ref(0)
-valueRef.value = 1
-valueRef.value = 1 // 不会导致重新渲染
-valueRef.value = 1 // 不会导致重新渲染
-```
-
-### useMemo
-
-```ts
-function useMemo(getter) {
-  const computedValueRef = computed(getter)
-  const valueRef = ref()
-  watchEffect(() => {
-    valueRef.value = computedValueRef.value
-  })
-  return valueRef
-}
-```
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-### 使用 UseMemo 实现 Checkbox
-
-<div class="grid grid-cols-2 gap-x-4">
-
-<div>
-
-```ts{7-9}
-defineComponent({
-  name: 'Checkbox',
-  props: ['value'],
-  setup (props) {
-    const { valueRef } = inject('checkbox-group')
-    return {
-      checked: computed(() => {
-        return valueRef.value.includes(props.value)
-      })
-    }
-  }
-})
-```
-
-</div>
-
-<div>
-
-```ts{7-9}
-defineComponent({
-  name: 'Checkbox',
-  props: ['value'],
-  setup (props) {
-    const { valueRef } = inject('checkbox-group')
-    return {
-      checked: useMemo(() => {
-        return valueRef.value.includes(props.value)
-      })
-    }
-  }
-})
-```
-
-</div>
-
-</div>
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-<img src="/assets/memo-checkbox.png" style="margin: auto; height: 50vh;" />
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-### 1000 Checkbox
-
-为了放大性能差异，每个 `render` 中都带一个 `console.log`
-
-<div class="grid grid-cols-2 gap-x-4 mb-4">
-
-<div>
-
-### Computed
-
-<img src="/assets/computed-perf.png" />
-
-</div>
-
-<div>
-
-### useMemo
-
-<img src="/assets/memo-perf.png" />
-
-</div>
-
-</div>
-
-[https://codesandbox.io/s/memo-large-data-98jni](https://codesandbox.io/s/memo-large-data-98jni)
-
----
-
-# Composition API · 跨组件逻辑复用 2
-
-优化 Checkbox Group 性能
-
-使用 mixin？🤮
+https://github.com/vuejs/rfcs/blob/master/active-rfcs/0042-expose-api.md
 
 ```js
-function createMemoMixin(fieldName, getter) {
-  return {
-    computed: {
-      [`computed-${fieldName}`]: getter
-    },
-    watch: {
-      [`computed-${fieldName}`]: function (value) {
-        this[fieldName] = value
-      }
-    },
-    created() {
-      this[fieldName] = this[`computed-${fieldName}`]
-    },
-    data() {
-      return { fieldName: null } // ?
-    }
+export default defineComponent({
+  setup(props, { expose }) {
+    // public ref props
+    expose({})
   }
-}
+})
 ```
+
+---
+
+# Composition API · 更好的类型支持
+
+Provide & Inject
 
 ---
 
