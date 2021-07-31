@@ -17,7 +17,7 @@ info: |
 
 # Vue 3 新特性在组件库中的应用
 
-[07akioni · 张乐聪](https://github.com/07akioni)
+[07akioni · 张乐聪 · https://github.com/07akioni](https://github.com/07akioni)
 
 ---
 
@@ -156,7 +156,7 @@ Input 组件具有 focus 方法
   }
 
   export default defineComponent(() => {
-    const inputInstRef = (ref < InputInst) | (null > null)
+    const inputInstRef = ref<InputInst\|null>( null)
     return {
       inputInstRef
     }
@@ -1047,15 +1047,144 @@ app.component({
 
 ---
 
-# `v-model` arguments
+# `v-model`
 
-双向绑定的语法糖
+### Vue 2
 
-`v-model` 的 API 提供了一种统一的“输入值、改变值”的范式
+`v-model` => `value` + `@input`
+
+在组件的使用 `model` 选项可以修改 prop key 和对应的事件。
+
+```js
+export default {
+  model: {
+    prop: 'foo',
+    event: 'fooChange'
+  }
+}
+```
+
+`v-model` 只对这个属性生效。
+
+对于其他属性只能使用 `v-bind:prop.sync` 和 `@update:prop`。
+
+---
+
+# `v-model`
+
+### Vue 3
+
+Vue 3 统一了 `v-model` 和 `.sync`。
 
 `v-model:value`
 
 - 输入值 `:value="xxx"`
 - 改变值 `@update:value="e => { xxx = e }"`
 
-在 API 设计时我们可以遵守这一范式
+在老版本中 `v-model` 和 `.sync` 的表现是割裂的。
+
+现在由 `v-model` 提供了统一的范式。
+
+---
+
+# `v-model`
+
+### 一些建议 1
+
+`v-model` 的 API 提供了一种统一的“输入值、改变值”的范式
+
+- 在 API 设计时遵守这一范式
+  - 纯 React Style：`foo` & `onFooChange`
+    - 一致性好，失去 `v-model` 的方便
+  - 纯 Vue Style：`foo` & `onUpdate:foo`
+    - 一致性好，`v-model` 灵活
+    - 需要对 JSX 的使用场景优化， `onUpdate:foo` 不能作为 prop
+  - 一半 React Style 一半 Vue Style
+    - 为什么这样 ❓ 是因为天天都是交付 DDL 导致没空注意 API 的一致性 ❓
+
+---
+
+# `v-model`
+
+### 一些建议 2
+
+不要使用 `v-model` 的默认属性，即 `v-model:modelValue` 和 `@update:modelValue`。
+
+使用 `v-model:value`。
+
+<v-click>
+
+> 显式比隐式更好。
+
+或许你的用户很懒，但是你需要告诉他们正确的事情。
+
+</v-click>
+
+<v-click>
+
+如果你这么用，那么当需要显式绑定值或者监听变化的时候，API 会很丑。
+
+```html
+<xxx :modelValue="x" /> <xxx @update:modelValue="x" />
+```
+
+什么是 modelValue？在不同的组件中并不一样。最好明确的让用户来使用。
+
+</v-click>
+
+---
+
+# `v-model`
+
+### JSX 的处理
+
+针对 `onUpdate:foo` 不能作为 prop，个人建议写两个 prop。
+
+```js
+export default defineComponent({
+  props: {
+    'onUpdate:value': Function,
+    onUpdateValue: Function
+  }
+})
+```
+
+---
+
+# `v-model`
+
+### 边界情况
+
+回调的 key 重复需要专门处理。[vue-template-explorer](https://vue-next-template-explorer.netlify.app/#%7B%22src%22%3A%22%3Cxxx%20v-model%3Avalue%3D%5C%22x%5C%22%20%40update%3Avalue%3D%5C%22y%5C%22%3E%22%2C%22options%22%3A%7B%22mode%22%3A%22module%22%2C%22filename%22%3A%22Foo.vue%22%2C%22prefixIdentifiers%22%3Afalse%2C%22hoistStatic%22%3Afalse%2C%22cacheHandlers%22%3Afalse%2C%22scopeId%22%3Anull%2C%22inline%22%3Afalse%2C%22ssrCssVars%22%3A%22%7B%20color%20%7D%22%2C%22compatConfig%22%3A%7B%22MODE%22%3A3%7D%2C%22whitespace%22%3A%22condense%22%2C%22bindingMetadata%22%3A%7B%22TestComponent%22%3A%22setup%22%2C%22foo%22%3A%22setup%22%2C%22bar%22%3A%22props%22%7D%2C%22optimizeImports%22%3Afalse%7D%7D)
+
+```html
+<xxx v-model:value="x" @update:value="y"></xxx>
+```
+
+```js
+props = {
+  'onUpdate:value': [($event) => (_ctx.x = $event), _ctx.y]
+}
+```
+
+所以请正确的定义 prop 类型。
+
+```js
+export default defineComponent({
+  props: {
+    'onUpdate:value': [Function, Array],
+    onUpdateValue: [Function, Array]
+  }
+})
+```
+
+---
+
+# `v-model`
+
+### 总结
+
+- 使用统一的 API 范式
+- 避免使用默认的 `v-model`
+- 正确的处理它在 JSX 中的使用
+- 正确的处理边界情况
