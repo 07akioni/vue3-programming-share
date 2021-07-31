@@ -28,23 +28,45 @@ info: |
 - Teleport
 - Emits Component Option
 - `v-model` arguments
+- `createApp`
+- 静态编译优化
+- 更好的 TypeScript 支持
+- `inheritAttrs` Component Option
+- 单独使用的 `h` 函数
 - ...
 
 ---
 
 # 目录
 
-- **Composition API**
-  - 单一组件层面的应用
-  - 跨多组件层面的应用
+对应于新特性的应用或造成的影响，本次分享内容包括以下部分
 
-<div class="opacity-40">
+<div class="grid grid-cols-2 gap-x-4 mb-4">
 
+<div>
+
+### 上
+
+- Composition API
 - Fragment
 - Teleport
 - Emits Component Option
-- `v-model` arguments
-- ...
+
+</div>
+
+<div>
+
+### 下
+
+- `v-model`
+- `createApp`
+- 静态优化带来的影响
+- TypeScript
+- `inheritAttrs`
+- 渲染函数 `h`
+- 不足之处
+
+</div>
 
 </div>
 
@@ -56,27 +78,24 @@ info: |
 
 组合式 API 可以将同一个逻辑关注点相关代码收集在一起
 
-对于组件库，相比于 Vue 2 的 Option API，Composition API 从很大程度上提升了逻辑密度，降低了维护成本
+对于组件库，相比于 Vue 2 的 Option API，Composition API 从很大程度上提升了逻辑密度，降低了维护成本，提供了更好的类型支持
 
 ### 应用
 
-- 单一组件层面
-
-  - 逻辑的拆分与聚合
-  - 更好的类型支持
-
-- 跨组件层面
-  - 跨组件逻辑复用
+- 逻辑复用
+- 性能优化
+- 类型层面
+  - ref, provide, inject, tsx
 
 <div class="mt-4" v-click>
 
-> 大多数情况，Composition API 的功能都可以使用 Options API 进行实现，但是更加复杂、可维护性低
+> 大多数情况，Composition API 的功能都可以使用 Options API 进行实现，但是更加复杂、可维护性低、类型支持差
 
 </div>
 
 ---
 
-# Composition API · 逻辑的拆分与聚合
+# Composition API · 逻辑复用
 
 <div class="grid grid-cols-2 gap-x-4 mb-4">
 
@@ -572,27 +591,6 @@ function createMemoMixin(fieldName, getter) {
 
 ---
 
-# 目录
-
-<div class="opacity-40">
-
-- Composition API
-
-</div>
-
-- **Fragment**
-
-<div class="opacity-40">
-
-- Teleport
-- Emits Component Option
-- `v-model` arguments
-- ...
-
-</div>
-
----
-
 # Fragment
 
 在根部渲染多个节点
@@ -631,27 +629,6 @@ function createMemoMixin(fieldName, getter) {
 - 不再需要唯一的根结点
 - 单一或多个根 Slot
 - 和 Teleport 结合可以制作更复杂的组件
-
----
-
-# 目录
-
-<div class="opacity-40">
-
-- Composition API
-- Fragment
-
-</div>
-
-- **Teleport**
-
-<div class="opacity-40">
-
-- Emits Component Option
-- `v-model` arguments
-- ...
-
-</div>
 
 ---
 
@@ -949,27 +926,6 @@ defineComponent(() => {
 
 ---
 
-# 目录
-
-<div class="opacity-40">
-
-- Composition API
-- Fragment
-- Teleport
-
-</div>
-
-- Emits Component Option
-
-<div class="opacity-40">
-
-- `v-model` arguments
-- ...
-
-</div>
-
----
-
 # Emits Component Option
 
 <div class="grid grid-cols-2 gap-x-4 mb-4">
@@ -1023,27 +979,6 @@ app.component({
 > Explicit is better than implicit.
 
 </v-click>
-
----
-
-# 目录
-
-<div class="opacity-40">
-
-- Composition API
-- Fragment
-- Teleport
-- Emits Component Option
-
-</div>
-
-- **`v-model` arguments**
-
-<div class="opacity-40">
-
-- ...
-
-</div>
 
 ---
 
@@ -1442,7 +1377,6 @@ defineComponent({
 
 - 在多个根节点的组件有很大作用
 - 在 JSX 中可以使用 `mergeProps` 达到 `v-bind` 的效果
-
 
 ---
 
