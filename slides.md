@@ -1191,6 +1191,193 @@ export default defineComponent({
 
 ---
 
+# 静态优化带来的影响
+
+区块树
+
+区块树是 Vue 3 引入的新概念，是在静态结构中的一些内容，用于加速渲染，例如跳过一些 Diff。
+
+这是个底层概念，但是会影响到组件的编写。
+
+看两个例子：
+
+```html
+<my-component>
+  <div v-for="i in [0, 1, 2]" :key="i" />
+  <!-- 一个区块 -->
+</my-component>
+```
+
+```tsx
+<MyComponent>
+  {{ default: () => [0, 1, 2].map((v) => <div key={i} />) }}
+</MyComponent>
+```
+
+---
+
+# 静态优化带来的影响
+
+区块树
+
+在第一个例子中，`MyComponent` 收到的 `default` 插槽内容是一个 `Fragment`。
+
+```html
+<my-component>
+  <div v-for="i in [0, 1, 2]" :key="i" />
+  <!-- 一个区块 -->
+</my-component>
+```
+
+```js
+_createElementBlock(_Fragment, null, _renderList([0, 1, 2], (i) => {
+  return _createElementVNode("div", { key: i })
+})
+```
+
+在第二个例子中，`MyComponent` 收到的 `default` 插槽内容是一个 `VNode` 的数组。
+
+```tsx
+<MyComponent>
+  {{ default: () => [0, 1, 2].map((v) => <div key={i} />) }}
+</MyComponent>
+```
+
+---
+
+# 静态优化带来的影响
+
+区块树
+
+如果你想要直接读取 `default` 插槽的信息，需要对这两种数据结构一起进行处理。
+
+例如 Tabs：
+
+```jsx
+function render() {
+  const {
+    $slots: { default: defaultSlot }
+  } = this
+  const children = flatten(defaultSlot()) // 同时兼容两种数据结构
+  return <div>
+    <div class="tabs">
+      {children.map(...)}
+    </div>
+    <div class="pane">
+      {children.find(...)}
+    </div>
+  </div>
+}
+```
+
+---
+
+# 静态优化带来的影响
+
+静态提升
+
+Vue 3 的模板编译器会将静态节点提升提升到渲染函数外。你的组件会接受同一个 `VNode` 作为输入。
+
+```html
+<div class="item" v-for="i in 5" :key="i">
+  <n-dropdown trigger="click" :options="options">
+    <div>click</div>
+  </n-dropdown>
+</div>
+```
+
+```js
+const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
+  'div',
+  null,
+  'click！',
+  -1 /* HOISTED */
+)
+
+export function render(_ctx, _cache, $props, $setup, $data, $options) {
+  const _component_n_dropdown = _resolveComponent('n-dropdown')
+  // ...
+}
+```
+
+---
+
+# 静态优化带来的影响
+
+静态提升
+
+避免去修改 `VNode`。
+
+### Drropdown
+
+```js
+import { defineComponent } from 'vue'
+
+defineComponent({
+  name: 'Dropdown',
+  render() {
+    const child = this.$slots.default()[0]
+    appendEvents(child) // ❌
+    return (
+      <>
+        {child}
+        <Teleport>
+          <DropdownMenu />
+        </Teleport>
+      </>
+    )
+  }
+})
+```
+
+---
+
+# 静态优化带来的影响
+
+静态提升
+
+使用 `cloneVNode`。
+
+### Drropdown
+
+```js
+import { defineComponent, cloneVNode } from 'vue'
+
+defineComponent({
+  name: 'Dropdown',
+  render() {
+    const child = cloneVNode(this.$slots.default()[0]) // ✅
+    appendEvents(child)
+    return (
+      <>
+        {child}
+        <Teleport>
+          <DropdownMenu />
+        </Teleport>
+      </>
+    )
+  }
+})
+```
+
+---
+
+# 静态优化带来的影响
+
+总结
+
+- 注意兼容区块树的产物
+- 注意兼容静态提升的产物
+  - `VNode` 应该被视作不可变的
+
+---
+
+# TypeScript
+
+为什么需要 TypeScript
+
+---
+
 # `createApp`
 
 ### Vue 2 => Vue 3
@@ -1520,7 +1707,7 @@ function Select<Option>(props: {
 ### 目前的 Slot 类型
 
 ```ts
-type Slot = (...args: any[]) => VNode[];
+type Slot = (...args: any[]) => VNode[]
 ```
 
 这个类型太过宽泛了。
@@ -1530,7 +1717,8 @@ type Slot = (...args: any[]) => VNode[];
 ```html
 <auto-complete #="{ onInput }">
   <my-input @input="onInput" />
-<auto-complete>
+  <auto-complete></auto-complete
+></auto-complete>
 ```
 
 `onInput` 是没有类型的。
@@ -1545,3 +1733,4 @@ type Slot = (...args: any[]) => VNode[];
 - Slots 不支持类型
   - 自然也不支持泛型
 
+这两项对于组件使用者的开发体验非常重要。
