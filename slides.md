@@ -1188,3 +1188,360 @@ export default defineComponent({
 - 避免使用默认的 `v-model`
 - 正确的处理它在 JSX 中的使用
 - 正确的处理边界情况
+
+---
+
+# `createApp`
+
+### Vue 2 => Vue 3
+
+任何全局改变 Vue 行为的 API 都会移动到应用实例上
+
+```js
+const app = createApp({})
+```
+
+### 两个常用点
+
+- `Vue.component` => `app.component`
+- `Vue.prototype` => `app.config.globalProperties`
+
+---
+
+# `createApp`
+
+&nbsp;
+
+Vue 如何寻找全局注册的组件？
+
+### Vue 2
+
+直接在 Vue 实例中寻找。
+
+```js
+h('my-component', {}, [])
+```
+
+### Vue 3
+
+使用 `resolveComponent` 寻找，只寻找 App 中安装的内容。
+
+```js
+const myComponent = resolveComponent('my-component')
+
+h(myComponent, {}, {})
+```
+
+---
+
+# `createApp` 引申出的一个问题
+
+&nbsp;
+
+`$message.error()` 这类 API 是否足够好
+
+### 在 Vue 2 中使用起来一切正常
+
+```js
+$message.error({
+  content(h) {
+    return h('my-component', {}, ['cool'])
+  }
+})
+```
+
+### 在 Vue 3 中呢？
+
+```js
+$message.error({
+  content() {
+    const myComponent = resolveComponent('my-component') // ❌ 找不到
+    return h('my-component', {}, ['cool'])
+  }
+})
+```
+
+---
+
+# `createApp` 引申出的一个问题
+
+&nbsp;
+
+`import { $message } from 'xxx'` 或者 `createApp().use($message)` 意味着什么？
+
+<v-click>
+
+- 单例
+  - 每个修改都会影响它
+  - 不同的应用使用引发冲突
+- 脱离应用环境
+  - 难以感知被调用时的环境
+  - 定制难（暗色主题）
+
+</v-click>
+
+<v-click>
+
+为什么 message 要作为 global、Vue 的一部分？🤔️
+
+message 本应作为 App 的一部分。
+
+常见的 API 不一定是正确的设计，常见的 API 设计和它被提出时的环境有关联，但是时间、环境会改变。
+
+</v-click>
+
+---
+
+# `createApp` 引申出的一个问题
+
+&nbsp;
+
+将 message 组件化。
+
+### `MessageProvider`
+
+```html
+<message-provider>
+  <app />
+</message-provider>
+```
+
+### 如何使其接受配置？
+
+```html
+<config-provider theme="dark">
+  <message-provider :duration="1000">
+    <app-1 />
+  </message-provider>
+  <message-provider>
+    <app-2 />
+  </message-provider>
+</config-provider>
+```
+
+---
+
+# `createApp` 引申出的一个问题
+
+### 如何在 App 中使用 message
+
+```js
+import { useMessage } from 'xxx'
+
+export default defineComponent({
+  setup() {
+    const { error } = useMessage()
+  }
+})
+```
+
+### `MessageProvider` 的实现
+
+```html
+<template>
+  <teleport>
+    <div><div v-for="message in messages" /></div>
+  </teleport>
+  <slot />
+</template>
+
+<script>
+  provide('message', {
+    // 省略 setup 的代码
+    error: (content) => messages.push(content)
+  })
+</script>
+```
+
+---
+
+# `createApp` 引申出的一个问题
+
+&nbsp;
+
+新的 API 具有的问题：
+
+学习成本高，早期会有很多用户来问你怎么用，说原来多方便。
+
+<v-click>
+
+但是相比于用户方便：
+
+1. 项目更好维护更加重要（人力有限，把时间花在更有价值的事情上）；
+1. 用户正确的引导更加重要（基础的问题是无休止的）。
+
+给用户正确的东西，而不是迁就。
+
+</v-click>
+
+<v-click>
+
+也不能说没有例外：
+
+除非他们给你付足够多的钱 💰💰💰💰💰💰💰
+
+</v-click>
+
+---
+
+# `createApp`
+
+总结
+
+- 任何全局改变 Vue 行为的 API 都会移动到应用实例上
+- Vue 3 使用 `resolveComponent` 寻找组件
+- 使用 Provider 的范式将单例 API 组件化
+  - 全局的单例 options 式的 API 会逐渐不能满足新的需求
+
+---
+
+# 渲染函数 `h`
+
+### Vue 2
+
+在 Vue 2 中，`h` 通过渲染函数暴露出来。
+
+```js
+render (h) {
+  return h('div')
+}
+```
+
+这导致很多的组件 API 中的渲染函数需要暴露同样的 `h`。
+
+### Vue 3
+
+```js
+import { h } from 'vue'
+
+render () {
+  h('div')
+}
+```
+
+在新的组件 API 不要再暴露 `h`。
+
+---
+
+# 渲染函数 `h`
+
+总结
+
+- `h` 可以从全局引入
+- 在新的组件 API 不要再暴露 `h`
+
+---
+
+# 尚未解决的痛点
+
+&nbsp;
+
+当前 Vue 3 组件开发中的痛点：
+
+- 组件 props 不支持泛型
+- 组件 slots 缺乏类型支持
+
+---
+
+# 泛型
+
+&nbsp;
+
+为什么组件开发需要泛型？
+
+```ts
+function Select(props: {
+  options: Array<{ label: string, value: string | number }>
+  value: string | number
+  onChange: (value: string | number, option: { label: string, value: string | number }) => void
+}) {
+  return ...
+}
+```
+
+这样够吗？如果用户知道传入的选项全都是 `string` 作为 `value`，`onChange` 回调中的 `value` 还是 `string | number`。
+
+`Table` 组件也类似，许多回调会传回对应的行数据。
+
+---
+
+# 泛型
+
+&nbsp;
+
+针对于回调参数，有一个临时解决方案，把 `|` 换成 `&`，但这不是没有代价的。
+
+```ts
+function Select(props: {
+  options: Array<{ label: string, value: string | number }>
+  value: string | number
+  onChange: (value: string & number, option: { label: string, value: string & number }) => void
+}) {
+  return ...
+}
+```
+
+`onChange` 可以接受更多的类型，例如：
+
+- `(value: string) => void`
+- `(value: number) => void`
+- `(value: number | number) => void`
+
+但是和 `options` 进行对应的任务交给了用户。
+
+---
+
+# 泛型
+
+&nbsp;
+
+这才是我们期望的类型：
+
+```ts
+function Select<Option>(props: {
+  options: Option[]
+  value: Option['value']
+  onChange: (value: Option['value'], option: Option) => void
+}) {
+  return ...
+}
+```
+
+然而目前 Vue 提供的 API 无法做到这点。
+
+相关 RFC：https://github.com/vuejs/rfcs/pull/310
+
+非 defineComponent，还在讨论中。
+
+---
+
+# 带类型的 Slots
+
+### 目前的 Slot 类型
+
+```ts
+type Slot = (...args: any[]) => VNode[];
+```
+
+这个类型太过宽泛了。
+
+假如我们希望对一个 AutoComplete 组件自定义输入框，并且希望对 input 事件做类型检查。
+
+```html
+<auto-complete #="{ onInput }">
+  <my-input @input="onInput" />
+<auto-complete>
+```
+
+`onInput` 是没有类型的。
+
+---
+
+# 尚未解决的痛点
+
+总结
+
+- Props 不支持泛型
+- Slots 不支持类型
+  - 自然也不支持泛型
+
