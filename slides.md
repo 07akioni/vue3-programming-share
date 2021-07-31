@@ -257,6 +257,16 @@ Composition API
 
 ---
 
+# Composition API · 逻辑复用
+
+总结
+
+- 逻辑的拆分聚合
+- 代替 `mixin`
+  - 请不要使用 `mixin`
+
+---
+
 # Composition API · 性能优化
 
 &nbsp;
@@ -794,6 +804,20 @@ export default defineComponent({
 
 ---
 
+# Composition API · 性能优化
+
+总结
+
+- 使用 `watchEffect` 手动调整 DOM
+  - 减少不必要渲染
+  - 非常规优化，谨慎
+- 使用 `useMemo` 避免 `computed` 的不足之处
+  - `computed` 不管值变不变都会导致重新渲染
+  - `useMemo` 不是 React 里面那个，是我们包装的一个新的 `computed`
+    - 只有值变了才重新渲染
+
+---
+
 # Composition API · 更好的类型支持
 
 Component 暴露的 Ref 类型
@@ -919,7 +943,6 @@ const coolPerson = inject<CoolPerson>('coolPerson')
 
 使用 `InjectionKey` 类型，`InjectionKey` 拓展了 `Symbol`。
 
-
 ```ts
 type CoolPerson = '07akioni'
 
@@ -939,6 +962,18 @@ const coolPerson = inject(coolPersonInjectionKey)
 `coolPersonInjectionKey` 所携带的类型会被 `provide` 和 `inject` 读取，不需要重复书写。
 
 同时这是 `Symbol` 保证不会用错。
+
+---
+
+# Composition API · 更好的类型支持
+
+总结
+
+- ref 安全的类型
+  - 编写技巧
+  - `expose` RFC
+- `provide`, `inject`
+  - 使用 `InjectionKey` 类型
 
 ---
 
@@ -980,6 +1015,14 @@ const coolPerson = inject(coolPersonInjectionKey)
 - 不再需要唯一的根结点
 - 单一或多个根 Slot
 - 和 Teleport 结合可以制作更复杂的组件
+
+---
+
+# Fragment
+
+总结
+
+使用多个节点作为根节点。
 
 ---
 
@@ -1107,6 +1150,14 @@ Vue 3 中的实现
 </div>
 
 </div>
+
+---
+
+# Teleport
+
+总结
+
+实现 Modal 的常用套路。
 
 ---
 
@@ -1277,6 +1328,14 @@ defineComponent(() => {
 
 ---
 
+# Fragment + Teleport
+
+总结
+
+Popover 和其他弹出组件的标准套路。
+
+---
+
 # Emits Component Option
 
 <div class="grid grid-cols-2 gap-x-4 mb-4">
@@ -1330,6 +1389,14 @@ app.component({
 > Explicit is better than implicit.
 
 </v-click>
+
+---
+
+# Emits Component Option
+
+总结
+
+建议别用
 
 ---
 
