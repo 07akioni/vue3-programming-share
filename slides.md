@@ -885,7 +885,60 @@ export default defineComponent({
 
 # Composition API · 更好的类型支持
 
-Provide & Inject
+`provide` & `inject`
+
+使 `provide` 和 `inject` 类型安全。
+
+首先，你需要有一个类型。
+
+比如
+
+```ts
+type CoolPerson = '07akioni'
+```
+
+```ts
+provide<CoolPerson>('coolPerson', '07akioni') // ✅
+provide<CoolPerson>('coolPerson', '08akioni') // ❌
+```
+
+```ts
+const coolPerson = inject<CoolPerson>('coolPerson')
+// typeof coolPerson = '07akioni'
+```
+
+虽然类型要自己加上去，看起来好像安全点了。
+
+可是还有个问题，这个 `'coolPerson'` 完全是手写的，万一写错了。
+
+---
+
+# Composition API · 更好的类型支持
+
+`provide` & `inject`
+
+使用 `InjectionKey` 类型，`InjectionKey` 拓展了 `Symbol`。
+
+
+```ts
+type CoolPerson = '07akioni'
+
+const coolPersonInjectionKey: InjectionKey<CoolPerson> = Symbol('coolPerson')
+```
+
+```ts
+provide(coolPersonInjectionKey, '07akioni') // ✅
+provide(coolPersonInjectionKey, '08akioni') // ❌
+```
+
+```ts
+const coolPerson = inject(coolPersonInjectionKey)
+// typeof coolPerson = '07akioni'
+```
+
+`coolPersonInjectionKey` 所携带的类型会被 `provide` 和 `inject` 读取，不需要重复书写。
+
+同时这是 `Symbol` 保证不会用错。
 
 ---
 
