@@ -1374,7 +1374,170 @@ defineComponent({
 
 # TypeScript
 
-为什么需要 TypeScript
+&nbsp;
+
+为什么需要 TypeScript：
+
+- 开发更安全
+  - 自动提示更多
+  -  重构更放心
+  - 修改能发现错误
+  - ...
+- 用户使用更安全
+  - 自动提示更多
+  -  重构更放心
+  - 使用能发现错误
+  - ...
+
+开发 Vue 3 项目不用 TS 的话，浪费了 Vue 3 和 TS 提供的能力。
+
+---
+
+# TypeScript
+
+`ExtractPropTypes`
+
+`ExtractPropTypes` 类型的使用值得专门讲一下。
+
+它可以将一个 prop 对象的类型转化为 `setup` 函数中传入的 `props` 的类型。
+
+每一个组件都需要导出一个属性类型供用户使用。
+
+```ts
+const buttonProps = {
+  // ...
+} as const
+
+export type ButtonProps = ExtractPropTypes<typeof buttonProps>
+
+export default Button = defineComponent({
+  props: buttonProps,
+  setup(props) {
+    // <- props 的类型即为 ButtonProps
+  }
+})
+```
+
+---
+
+# TypeScript
+
+`ExtractPropTypes`
+
+但是现在的写法还存在一些问题。在下面的例子中，`props.foo` 一定存在。
+
+```ts
+const buttonProps = {
+  foo: {
+    type: String,
+    defualt: ''
+  }
+} as const
+
+export type ButtonProps = ExtractPropTypes<typeof buttonProps> // 👀 props.foo 一定存在
+
+export default Button = defineComponent({
+  props: buttonProps,
+  setup(props) {
+    // <- props 的类型即为 ButtonProps
+    props.foo // 👀 props.foo 一定存在
+  }
+})
+```
+
+但是，用户应该可以不填写 `foo` 的。
+
+---
+
+# TypeScript
+
+`ExtractPropTypes`
+
+但是现在的写法还存在一些问题。在下面的例子中，`props.foo` 一定存在。
+
+```ts
+const buttonProps = {
+  foo: {
+    type: String,
+    defualt: ''
+  }
+} as const
+
+export type ButtonProps = Partial<ExtractPropTypes<typeof buttonProps>> // 属性变得不是必填
+
+export default Button = defineComponent({
+  props: buttonProps,
+  setup(props) {
+    // <- props 的类型即为 ButtonProps
+    props.foo // 👀 props.foo 一定存在
+  }
+})
+```
+
+修改后，用户可以不填写 `foo`。
+
+---
+
+# TypeScript
+
+`ExtractPropTypes`
+
+一个相关的建议：
+
+- 任何**公开**组件都不应该有必填属性。
+  - 组件可以直接渲染会减少用户的使用成本。
+
+<v-click>
+
+一个和相关建议相关的建议：
+
+- 任何**公开组件**都需要有非受控属性。
+
+支持非受控属性：
+
+```html
+<my-input default-value=""></my-input>
+```
+
+不支持非受控属性的话：
+
+```html
+<my-input v-model:value="xxx" />
+<!-- 用户必须要在组件中定义 xxx，要写 v-model 组件才能正常交互 -->
+```
+
+</v-click>
+
+---
+
+# TypeScript
+
+一个 TSX 的 hack
+
+假设你想让 Button 组件在 TSX 中接受全部 `button` 标签接受的属性：
+
+- 不可能将所有属性一一在 props 中声明
+- `defineComponent` 的产物只接受声明的 props
+
+```tsx
+// ❌，没有在 MyButton 的 props 写明的属性都会报错
+<MyButton onDragStart={onDragStart} />
+```
+
+### 利用 `ExtractPropTypes` 进行 hack
+
+```ts
+const ButtonProps = ExtractPropTypes(Button) // 获取 Button 的属性
+
+type NativeButtonProps = Omit<ButtonHTMLAttributes, keyof ButtonProps> // 获取原生属性
+type MergedProps = Partial<ButtonProps & NativeButtonProps> // 合并两种属性
+
+export const XButton: new () => { $props: MergedProps } = Button as any // 构建 TSX 专用对象
+```
+
+```tsx
+<XButton onDragStart={onDragStart} /> // ✅
+```
 
 ---
 
