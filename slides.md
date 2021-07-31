@@ -1372,6 +1372,80 @@ defineComponent({
 
 ---
 
+# `inheritAttrs` 属性
+
+&nbsp;
+
+`inheritAttrs` 控制没有声明在 props 中的属性是否向组件传递。
+
+- 在 React 中，对于自定义组件，除了 `key` 和 `ref`，任何属性不会被区别对待，包括 `style` 和 `className`。
+- 在 Vue 2 中，`inheritAttrs` 不对 `style` 和 `class` 生效
+  - 这限制了组件的编写的灵活性
+- 在 Vue 3 中，`inheritAttrs` 对 `style` 也 `class` 生效
+
+---
+
+# `inheritAttrs` 属性
+
+应用场景
+
+### 多个根节点的组件
+
+多个根节点的组件无法自动继承属性，需要手动绑定。
+
+```html
+<template>
+  <input v-bind="$attrs" class="auto-complete-input" />
+  <popmenu />
+</template>
+
+<script>
+  export default defineComponent({
+    name: 'AutoComplete',
+    inheritAttrs: false
+  })
+</script>
+```
+
+---
+
+# `inheritAttrs` 属性
+
+应用场景
+
+### JSX
+
+在 JSX 中 `v-bind` 会转化为 `mergeProps` 函数。
+
+```jsx
+import { defineComponent, mergeProps, Fragment } from 'vue'
+
+defineComponent({
+  name: 'AutoComplete',
+  inheritAttrs: false,
+  render() {
+    return (
+      <>
+        <input {...mergeProps(this.$attrs, { class: 'auto-complete' })} />
+        <Popmenu />
+      </>
+    )
+  }
+})
+```
+
+---
+
+# `inheritAttrs` 属性
+
+总结
+
+- 在多个根节点的组件有很大作用
+- 在 JSX 中可以使用 `mergeProps` 达到 `v-bind` 的效果
+
+
+---
+
 # TypeScript
 
 &nbsp;
@@ -1491,15 +1565,15 @@ export default Button = defineComponent({
 
 一个和相关建议相关的建议：
 
-- 任何**公开组件**都需要有非受控属性。
+- 任何**公开组件**都需要有非受控模式。
 
-支持非受控属性：
+支持非受控模式：
 
 ```html
 <my-input default-value=""></my-input>
 ```
 
-不支持非受控属性的话：
+不支持非受控模式的话：
 
 ```html
 <my-input v-model:value="xxx" />
@@ -1538,6 +1612,19 @@ export const XButton: new () => { $props: MergedProps } = Button as any // 构�
 ```tsx
 <XButton onDragStart={onDragStart} /> // ✅
 ```
+
+---
+
+# TypeScript
+
+总结
+
+- TypeScript 很有用
+- `ExtractPropTypes` 很有用
+  - 辅助生成组件的 props 类型
+    - 建议所有公开组件不存在必填 prop
+    - 建议所有空开组件支持非受控模式
+  - Hack TSX
 
 ---
 
