@@ -18,3 +18,11 @@
 .slidev-layout h1 + p {
   opacity: 1;
 }
+
+.op5 {
+  opacity: .5;
+}
+
+.slidev-layout.cover h1, .slidev-layout.intro h1 {
+  font-size: 3rem;
+}
