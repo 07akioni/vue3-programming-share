@@ -1,0 +1,28 @@
+- `v-model` 的细节处理
+- `watchEffect` 性能优化
+- `createApp` 带来的影响
+  - 不再原型了
+  - `this.$message` 说再见
+  - `resolveComponent`
+  - 全员 provider 化，`message` 也是 App 的一部分
+    - provider 化能带来更简单的实现
+    - 教育用户
+- `inheritAttrs` 这个属性
+  - Vue 2 this option does not affect class and style bindings.
+  - `mergeProps`
+- `hack`
+  - 教练，我想在 TSX 中让 Vue 的 Button 使用 HTML 属性
+  - ExtractPropTypes
+- 类型支持
+  - `provide`, `inject`
+  - `exposes` RFC
+- h 的变化
+  - 不要再从 render function 传出来了
+- block tree
+  - 处理编译优化
+- 期待
+  - “泛型”
+    - 看看 RFC
+  - 带类型的 Slots
+    - 看看 RFC
+  - Vue 的性能优化可能让少数组件崩掉，更精确的渲染控制

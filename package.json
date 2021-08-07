@@ -10,5 +10,8 @@
     "@slidev/theme-default": "*",
     "@slidev/theme-seriph": "*"
   },
-  "name": "vue3-library"
+  "name": "vue3-library",
+  "devDependencies": {
+    "playwright-chromium": "^1.13.1"
+  }
 }

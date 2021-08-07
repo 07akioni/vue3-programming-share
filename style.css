@@ -1,0 +1,20 @@
+#slide-content {
+  color: rgba(255, 255, 255);
+  background-color: #1C1F2F;
+}
+
+:not(pre) > code {
+  color: rgb(24, 24, 24);
+}
+
+.slidev-layout h1 + p {
+  opacity: 0.8;
+}
+
+.slidev-layout h3:not(.opacity-100) {
+  opacity: 0.8;
+}
+
+.slidev-layout h1 + p {
+  opacity: 1;
+}

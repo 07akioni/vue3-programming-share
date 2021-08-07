@@ -7,17 +7,17 @@ theme: default
 class: 'text-center'
 # https://sli.dev/custom/highlighters.html
 highlighter: shiki
-# some information about the slides, markdown enabled
-info: |
-  ## Slidev Starter Template
-  Presentation slides for developers.
-
-  Learn more at [Sli.dev](https://sli.dev)
 ---
 
 # Vue 3 新特性在组件库中的应用
 
-[07akioni · 张乐聪 · https://github.com/07akioni](https://github.com/07akioni)
+张乐聪 · 字节跳动 · 前端工程师
+
+[07akioni · https://github.com/07akioni](https://github.com/07akioni)
+
+<img style="position: absolute; left: 4%; top: 8%; height: 6%;" src="/assets/qcon.png" />
+
+<img style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-index: -1;" src="/assets/background.png"/>
 
 ---
 
@@ -733,13 +733,12 @@ export default defineComponent({
     }
   },
   render() {
-    // 每一次滚动都要重新渲染
     return (
       <div
         class={this.scrollTop !== 0 ? 'scrolled' : ''}
         onScroll={this.onScroll}
       />
-    )
+    ) // 每一次滚动都要重新渲染
   }
 })
 ```
@@ -765,9 +764,8 @@ export default defineComponent({
   },
   render() {
     return (
-      // 每一次滚动都要重新渲染
       <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
-    )
+    ) // 每一次滚动都要重新渲染
   }
 })
 ```
@@ -795,9 +793,8 @@ export default defineComponent({
   },
   render() {
     return (
-      // 每一次滚动都要重新渲染
       <div class={this.scrolled ? 'scrolled' : ''} onScroll={this.onScroll} />
-    )
+    ) // 每一次滚动都要重新渲染
   }
 })
 ```
@@ -1629,7 +1626,7 @@ function render() {
 
 静态提升
 
-Vue 3 的模板编译器会将静态节点提升提升到渲染函数外。你的组件会接受同一个 `VNode` 作为输入。
+Vue 3 的模板编译器会将静态节点提升到渲染函数外。你的组件会接受同一个 `VNode` 作为输入。
 
 ```html
 <div class="item" v-for="i in 5" :key="i">
@@ -2336,3 +2333,7 @@ type Slot = (...args: any[]) => VNode[]
   - 自然也不支持泛型
 
 这两项对于组件使用者的开发体验非常重要。
+
+---
+
+<img src="/assets/thanks.png" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0;" />
