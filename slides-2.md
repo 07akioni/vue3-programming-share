@@ -1231,4 +1231,40 @@ type Slot = (...args: any[]) => VNode[]
 
 ---
 
+# 总结
+
+- Emits Component Option
+- `v-model`
+- 静态优化带来的影响
+- `inheritAttrs`
+- TypeScript
+- `createApp`
+- 渲染函数 `h`
+- 尚未解决的痛点
+
+- 为什么用？怎么用？尽力选择最佳实践
+
+---
+
+# 案例复盘
+
+- https://www.naiveui.com/
+- 所有的错误实践都在这个项目中出现过
+
+<img src="/assets/naive-ui.png" style="height: 80%;" />
+
+---
+
+# Take Away 的一句话
+
+&nbsp;
+
+把东西做好远远比把事情做对难
+
+一百件对的事不等于一个好的产品
+
+理想还是存在的，只不过追求理想，可能会很痛苦
+
+---
+
 <img src="/assets/thanks.png" style="position: absolute; left: 0; right: 0; top: 0; bottom: 0;" />

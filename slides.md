@@ -281,7 +281,7 @@ Composition API
 - 直接使用
   - 类型友好
   - Explicit 使用
-  - Debug 困难
+  - Debug 友好
 
 </div>
 
@@ -1431,6 +1431,42 @@ defineComponent(() => {
 总结
 
 Popover 和其他弹出组件的标准套路。
+
+---
+
+# 总结
+
+- Composition
+  - 逻辑复用
+  - 性能优化
+  - 类型支持
+- Fragment
+- Teleport
+
+All in 新特性
+
+---
+
+# 案例复盘
+
+- https://www.naiveui.com/
+- 所有的错误实践都在这个项目中出现过
+
+<img src="/assets/naive-ui.png" style="height: 80%;" />
+
+
+---
+
+# Take Away 的一句话
+
+&nbsp;
+
+正确的限制 = 更大的自由
+
+- 寻找正确的方法
+- 使用 Good Parts
+- 清晰架构
+- 正确的限制能让工具人早点下班
 
 ---
 
